@@ -40,11 +40,12 @@ def main():
         stored_faces.append(descriptors)
     detector = dlib.get_frontal_face_detector()
 
+    margin = 1.0
     # load weights
     img_size = 64
     model = WideResNet(img_size, depth=16, k=8)()
     model.load_weights('model/weights.hdf5')
-    
+
     screen_capture = False
     screen_text_countdown = 0
     screen_message = ''
@@ -60,7 +61,7 @@ def main():
             sleep(5)
         blur = cv2.GaussianBlur(frame, (7,7), 0)
         input_img = cv2.cvtColor(blur, cv2.COLOR_BGR2RGB)
-
+        img_h, img_w, _ = np.shape(frame)
         # detect faces using dlib detector
         detected = detector(input_img, 1)
         faces = np.empty((len(detected), img_size, img_size, 3))
@@ -71,9 +72,14 @@ def main():
                 y1 = d.top()
                 x2 = d.right() + 1
                 y2 = d.bottom() + 1
-
+                w = d.width()
+                h = d.height()
+                xm1 = max(int(x1 - margin * w), 0)
+                ym1 = max(int(y1 - margin * h), 0)
+                xm2 = min(int(x2 + margin * w), img_w - 1)
+                ym2 = min(int(y2 + margin * h), img_h - 1)
                 cv2.rectangle(frame, (x1, y1), (x2, y2), (92, 91, 241), 2)
-                faces[i, :, :, :] = cv2.resize(frame[y1 : y2 + 1, x1 : x2 + 1, :], (img_size, img_size))
+                faces[i, :, :, :] = cv2.resize(frame[ym1 : ym2 + 1, xm1 : xm2 + 1, :], (img_size, img_size))
 
             # predict ages and genders
             results = model.predict(faces)
